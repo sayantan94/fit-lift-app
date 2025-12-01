@@ -370,7 +370,7 @@ struct CalendarWorkoutRow: View {
                                             .foregroundColor(Theme.textTertiary)
                                             .frame(width: 50, alignment: .leading)
 
-                                        Text(set.formattedWeight)
+                                        Text(formattedSetValue(set))
                                             .font(.system(size: 13))
                                             .foregroundColor(Theme.textSecondary)
                                             .frame(width: 80, alignment: .leading)
@@ -389,6 +389,13 @@ struct CalendarWorkoutRow: View {
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
+    }
+
+    private func formattedSetValue(_ set: WorkoutSet) -> String {
+        if workoutType == .core {
+            return "\(Int(set.weight))s"
+        }
+        return set.formattedWeight
     }
 }
 

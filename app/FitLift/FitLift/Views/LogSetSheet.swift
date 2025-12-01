@@ -7,9 +7,11 @@ struct LogSetSheet: View {
     let setNumber: Int
     let previousWeight: Double?
     let previousReps: Int?
+    let isCore: Bool
 
     @State private var weight: Double
     @State private var reps: Int
+    @State private var seconds: Int
 
     let onSave: (Double, Int) -> Void
 
@@ -20,14 +22,18 @@ struct LogSetSheet: View {
         previousReps: Int?,
         currentWeight: Double,
         currentReps: Int,
+        isCore: Bool = false,
         onSave: @escaping (Double, Int) -> Void
     ) {
         self.exerciseName = exerciseName
         self.setNumber = setNumber
         self.previousWeight = previousWeight
         self.previousReps = previousReps
+        self.isCore = isCore
         self._weight = State(initialValue: currentWeight > 0 ? currentWeight : (previousWeight ?? 0))
         self._reps = State(initialValue: currentReps > 0 ? currentReps : (previousReps ?? 0))
+        // For Core, weight stores seconds
+        self._seconds = State(initialValue: currentWeight > 0 ? Int(currentWeight) : Int(previousWeight ?? 30))
         self.onSave = onSave
     }
 
@@ -52,33 +58,62 @@ struct LogSetSheet: View {
                 .padding(.bottom, 30)
 
             // Input fields
-            HStack(spacing: 40) {
-                // Weight input
-                VStack(spacing: 8) {
-                    WeightInputBox(value: $weight)
-                    Text("lbs")
-                        .font(.system(size: 14))
-                        .foregroundColor(Theme.textSecondary)
-                }
+            if isCore {
+                // Core: Time and Reps
+                HStack(spacing: 40) {
+                    VStack(spacing: 8) {
+                        TimeInputBox(value: $seconds)
+                        Text("seconds")
+                            .font(.system(size: 14))
+                            .foregroundColor(Theme.textSecondary)
+                    }
 
-                // Reps input
-                VStack(spacing: 8) {
-                    RepsInputBox(value: $reps)
-                    Text("reps")
-                        .font(.system(size: 14))
-                        .foregroundColor(Theme.textSecondary)
+                    VStack(spacing: 8) {
+                        RepsInputBox(value: $reps)
+                        Text("reps")
+                            .font(.system(size: 14))
+                            .foregroundColor(Theme.textSecondary)
+                    }
                 }
-            }
-            .padding(.bottom, 20)
+                .padding(.bottom, 20)
 
-            // Previous hint
-            if let prevWeight = previousWeight, let prevReps = previousReps {
-                Text("Previous: \(Int(prevWeight)) lbs × \(prevReps) reps")
-                    .font(.system(size: 13))
-                    .foregroundColor(Theme.textTertiary)
-                    .padding(.bottom, 24)
+                // Previous hint for Core
+                if let prevSeconds = previousWeight, let prevReps = previousReps {
+                    Text("Previous: \(Int(prevSeconds))s × \(prevReps) reps")
+                        .font(.system(size: 13))
+                        .foregroundColor(Theme.textTertiary)
+                        .padding(.bottom, 24)
+                } else {
+                    Spacer().frame(height: 37)
+                }
             } else {
-                Spacer().frame(height: 37)
+                // Regular: Weight and Reps
+                HStack(spacing: 40) {
+                    VStack(spacing: 8) {
+                        WeightInputBox(value: $weight)
+                        Text("lbs")
+                            .font(.system(size: 14))
+                            .foregroundColor(Theme.textSecondary)
+                    }
+
+                    VStack(spacing: 8) {
+                        RepsInputBox(value: $reps)
+                        Text("reps")
+                            .font(.system(size: 14))
+                            .foregroundColor(Theme.textSecondary)
+                    }
+                }
+                .padding(.bottom, 20)
+
+                // Previous hint
+                if let prevWeight = previousWeight, let prevReps = previousReps {
+                    Text("Previous: \(Int(prevWeight)) lbs × \(prevReps) reps")
+                        .font(.system(size: 13))
+                        .foregroundColor(Theme.textTertiary)
+                        .padding(.bottom, 24)
+                } else {
+                    Spacer().frame(height: 37)
+                }
             }
 
             // Save button
@@ -101,8 +136,53 @@ struct LogSetSheet: View {
     }
 
     private func save() {
-        onSave(weight, reps)
+        if isCore {
+            // For Core, save seconds in the weight field
+            onSave(Double(seconds), reps)
+        } else {
+            onSave(weight, reps)
+        }
         dismiss()
+    }
+}
+
+struct TimeInputBox: View {
+    @Binding var value: Int
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        VStack {
+            HStack(spacing: 0) {
+                Button(action: { if value >= 5 { value -= 5 } }) {
+                    Image(systemName: "minus")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(Theme.accent)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                TextField("", value: $value, format: .number)
+                    .font(.system(size: 36, weight: .semibold))
+                    .foregroundColor(Theme.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .keyboardType(.numberPad)
+                    .focused($isFocused)
+                    .frame(width: 52)
+
+                Button(action: { value += 5 }) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(Theme.accent)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+            .frame(width: 140, height: 80)
+            .background(Color.white.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+        }
     }
 }
 

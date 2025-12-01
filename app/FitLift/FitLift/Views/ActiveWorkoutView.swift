@@ -46,6 +46,7 @@ struct ActiveWorkoutView: View {
                                         workoutManager.exercises[index] = $0
                                     }
                                 ),
+                                isCore: workoutType == .core,
                                 onSetTap: { setIndex in
                                     selectedExerciseIndex = index
                                     selectedSetIndex = setIndex
@@ -90,7 +91,8 @@ struct ActiveWorkoutView: View {
                     previousWeight: getPreviousWeight(exerciseIndex: exerciseIndex, setIndex: setIndex),
                     previousReps: getPreviousReps(exerciseIndex: exerciseIndex, setIndex: setIndex),
                     currentWeight: workoutManager.exercises[exerciseIndex].sets[setIndex].weight,
-                    currentReps: workoutManager.exercises[exerciseIndex].sets[setIndex].reps
+                    currentReps: workoutManager.exercises[exerciseIndex].sets[setIndex].reps,
+                    isCore: workoutType == .core
                 ) { weight, reps in
                     workoutManager.updateSet(exerciseIndex: exerciseIndex, setIndex: setIndex, weight: weight, reps: reps)
                 }
@@ -221,10 +223,22 @@ struct ActiveSet: Identifiable {
         }
         return String(format: "%.1f lbs", weight)
     }
+
+    func formattedValue(isCore: Bool) -> String {
+        if weight == 0 { return "-" }
+        if isCore {
+            return "\(Int(weight))s"
+        }
+        if weight.truncatingRemainder(dividingBy: 1) == 0 {
+            return "\(Int(weight)) lbs"
+        }
+        return String(format: "%.1f lbs", weight)
+    }
 }
 
 struct ExerciseBlock: View {
     @Binding var exercise: ActiveExercise
+    let isCore: Bool
     let onSetTap: (Int) -> Void
     let onAddSet: () -> Void
 
@@ -246,7 +260,7 @@ struct ExerciseBlock: View {
             HStack {
                 Text("SET")
                     .frame(width: 50, alignment: .leading)
-                Text("WEIGHT")
+                Text(isCore ? "TIME" : "WEIGHT")
                     .frame(maxWidth: .infinity, alignment: .leading)
                 Text("REPS")
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -263,6 +277,7 @@ struct ExerciseBlock: View {
             ForEach(exercise.sets.indices, id: \.self) { index in
                 SetRow(
                     set: exercise.sets[index],
+                    isCore: isCore,
                     onTap: { onSetTap(index) }
                 )
             }
@@ -284,6 +299,7 @@ struct ExerciseBlock: View {
 
 struct SetRow: View {
     let set: ActiveSet
+    let isCore: Bool
     let onTap: () -> Void
 
     var body: some View {
@@ -293,7 +309,7 @@ struct SetRow: View {
                     .frame(width: 50, alignment: .leading)
                     .foregroundColor(Theme.textSecondary)
 
-                Text(set.formattedWeight)
+                Text(set.formattedValue(isCore: isCore))
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .foregroundColor(Theme.textPrimary)
 
